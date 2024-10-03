@@ -1,0 +1,64 @@
+# File contains the image name tag and sha
+
+gmf:
+  image: &geoportal-image
+    repository: camptocamp/geomapfishapp-geoportal
+    tag: 2.8.1
+    atleastOldDays: 20
+    sha: 295d2ac0364cfdf2ce44e755939af12917029ca155d4ddda65818e45f6b5499c # Managed by update-image-hash script
+
+  alembic:
+    image: *geoportal-image
+
+  tools:
+    image:
+      repository: camptocamp/geomapfish-tools
+      tag: '2.8'
+      atleastOldDays: 20
+      sha: 28a906a052dd06af7fb887b41dc176bc722086acbf010503613f9c035ff97813 # Managed by update-image-hash script
+
+pods:
+  services:
+    mapserver:
+      containers:
+        mapserver:
+          image:
+            repository: camptocamp/mapserver
+            tag: 8.0-gdal3.7
+            atleastOldDays: 20
+            sha: c3aafc84195997279ac94aa31a26e51945c8131302748a4c1cbb390538cb76ff # Managed by update-image-hash script
+
+        apache-exporter: &apacheExporter
+          image:
+            # repository: quay.io/lusitaniae/apache-exporter
+            repository: bitnami/apache-exporter
+            tag: 0.11.0
+            atleastOldDays: 20
+            sha: 843c0f14f8ae9b57247afb336ce84eedfd378f4bf7a0b96891c7e98110a832f3 # Managed by update-image-hash script
+
+    qgisserver:
+      containers:
+        qgisserver:
+          image:
+            repository: camptocamp/geomapfish-qgisserver
+            tag: gmf2.8-qgis3.28-gdal3.7
+            atleastOldDays: 20
+            sha: ab420fba44bc716ef0005e748cb7cda6d00a5012422ac928f296a3641f7f0071 # Managed by update-image-hash script
+
+        apache-exporter: *apacheExporter
+
+    tinyows:
+      containers:
+        tinyows:
+          image:
+            repository: camptocamp/tinyows
+            tag: latest
+            atleastOldDays: 20
+            sha: dcfca35e49551dfd3c0955c12dfc37dfded406c5e5ba65a7ac3c57e767b29220 # Managed by update-image-hash script
+
+        apache-exporter: *apacheExporter
+
+fts-cron:
+  containers:
+    fts-cron:
+      image: *geoportal-image

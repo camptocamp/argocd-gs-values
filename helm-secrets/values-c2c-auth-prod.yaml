@@ -1,0 +1,6 @@
+secrets:
+  externalSecrets:
+    refreshInterval: 1h
+    secretStoreRef:
+      kind: ClusterSecretStore
+      name: gmf-shared-prod

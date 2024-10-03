@@ -1,0 +1,16 @@
+ingress: &ingress
+  createService: true
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    ingress.kubernetes.io/ssl-redirect: 'true'
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: 'true'
+  paths:
+    geoportal:
+      path: /
+      serviceName: gmf-geoportal
+      selector:
+        app.kubernetes.io/component: geoportal
+        app.kubernetes.io/name: gmf
+
+ingress-test: *ingress

@@ -1,0 +1,192 @@
+global:
+  configMapNameOverride:
+    aws-credentials: nextcloud-aws-credentials
+    smtp-credentials: nextcloud-smtp-credentials
+
+nc-pod:
+  metadata: true
+
+  affinity: {}
+
+  ingress:
+    enabled: true
+
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      ingress.kubernetes.io/ssl-redirect: 'true'
+      traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      traefik.ingress.kubernetes.io/router.tls: 'true'
+
+  services:
+    nc-pod:
+      enabled: true
+      podLabels:
+        team: gmf
+      service:
+        ports:
+          - name: http
+            port: 80
+            protocol: TCP
+            targetPort: http
+      replicaCount: 1
+      nodeSelector: {}
+      affinity: {}
+
+      ingress:
+        enabled: true
+        path: /
+
+      containers:
+        nextcloud:
+          image:
+            repository: nextcloud
+            tag: 27.0.0
+            sha: a4181a159a0eb4d33cf7c5a05a24ca39c1ff6b7df29a125b5e47ab2ea2863bd1 # Managed by update-image-hash script
+
+          resources:
+            limits:
+              memory: 256Mi
+              cpu: 1
+              ephemeral-storage: 10Mi
+            requests:
+              memory: 101Mi
+              cpu: 27m
+
+          env:
+            POSTGRES_HOST:
+              type: secret
+              name: database
+              key: hostname
+            POSTGRES_PORT:
+              type: secret
+              name: database
+              key: port
+            POSTGRES_DB:
+              type: secret
+              name: database
+              key: database
+            POSTGRES_USER:
+              type: secret
+              name: database
+              key: username
+            POSTGRES_PASSWORD:
+              type: secret
+              name: database
+              key: password
+            PGPREFIX:
+              value: nextcloud_
+            AWS_ACCESS_KEY_ID:
+              type: secret
+              name: aws-credentials
+              key: access_key
+            AWS_SECRET_ACCESS_KEY:
+              type: secret
+              name: aws-credentials
+              key: secret_key
+            OBJECTSTORE_S3_REGION:
+              type: secret
+              name: aws-credentials
+              key: region
+            OBJECTSTORE_S3_HOST:
+              type: secret
+              name: aws-credentials
+              key: endpoint
+            OBJECTSTORE_S3_BUCKET:
+              type: secret
+              name: aws-credentials
+              key: bucket
+            SMTP_HOST:
+              type: secret
+              name: smtp-credentials
+              key: host
+            SMTP_USERNAME:
+              type: secret
+              name: smtp-credentials
+              key: username
+            SMTP_PASSWORD:
+              type: secret
+              name: smtp-credentials
+              key: password
+            MAIL_FROM_ADDRESS:
+              type: secret
+              name: smtp-credentials
+              key: from_user
+            MAIL_DOMAIN:
+              type: secret
+              name: smtp-credentials
+              key: from_domain
+            #REDIS_COMMENT:
+            #  value: ' '
+            #REDIS_HOST:
+            #  value: redis
+            #REDIS_DB:
+            #  value: '1'
+            LOG_LEVEL:
+              value: '2'
+          ports:
+            http:
+              containerPort: 80
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /status.php
+              port: http
+            initialDelaySeconds: 15
+            timeoutSeconds: 30
+          volumeMounts:
+            nc-config:
+              name: nc-config
+              mountPath: /usr/src/nextcloud/config/config.php
+              subPath: config.php
+      volumes:
+        nc-config:
+          secret:
+            secretName: nextcloud-nc-secret
+
+nc-cron:
+  schedule: '*/15 * * * *'
+  successfulJobsHistoryLimit: 0
+  failedJobsHistoryLimit: 1
+  concurrencyPolicy: Forbid
+
+  podLabels:
+    team: gmf
+
+  containers:
+    cron:
+      restartPolicy: Never
+
+      image:
+        repository: ghcr.io/camptocamp/c2cwsgiutils
+        tag: '5.2'
+        sha: 019778aef097d18affb68412366d963811235fbe394f5942cc43784ada465d60 # Managed by update-image-hash script
+
+      resources:
+        limits:
+          memory: 20Mi
+          cpu: 1
+          ephemeral-storage: 1Mi
+        requests:
+          memory: 1435Ki
+          cpu: 1.000m
+
+      args:
+        - curl
+        - -H
+        - 'Host: $(HOST)'
+        - http://$(FULL_HOST)/cron.php
+
+      env:
+        HOST:
+          value: nextcloud-nc-pod-nc-pod
+
+nc-secret:
+  secrets:
+    # https://docs.nextcloud.com/server/27/admin_manual/configuration_server/logging_configuration.html?highlight=logging
+    config.php:
+      value: |
+        <?php
+        $CONFIG = [
+          "log_type" => "errorlog",
+          "loglevel" => 0,
+        ];

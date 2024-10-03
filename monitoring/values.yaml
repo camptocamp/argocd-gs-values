@@ -1,0 +1,140 @@
+global:
+  image:
+    pullPolicy: Always
+  configMapNameOverride:
+    dbstats: monitoring-dbstats
+    secrets: secrets-secrets
+
+dbstats:
+  annotations:
+    reloader.stakater.com/auto: 'true'
+  podLabels:
+    team: gmf
+
+  # Every hours
+  schedule: 0 * * * *
+  failedJobsHistoryLimit: 1
+
+  podMonitor:
+    enabled: true
+    endpoint:
+      honorLabels: true
+      interval: 10s
+      port: prometheus
+
+  initContainers: {}
+  containers:
+    dbstats:
+      image:
+        repository: camptocamp/c2cwsgiutils
+        tag: master
+        sha: 7418ff2f1fa4c09cc405b62256ac44b8f98657f18d33f24c33eb4293a90317e5 # Managed by update-image-hash script
+
+      resources:
+        requests:
+          cpu: 30m
+          memory: 41Mi
+        limits:
+          memory: 60Mi
+          cpu: '2'
+          ephemeral-storage: 16Mi
+
+      args:
+        - bash
+        - -cxe
+        - c2cwsgiutils-stats-db $(DBSTATS_DB_ARGUMENT) $(DBSTATS_EXTRA_ARGUMENTS)
+      env:
+        LOG_TYPE:
+          value: json
+        LOG_LEVEL:
+          value: WARNING
+        C2CWSGIUTILS_LOG_LEVEL:
+          value: WARNING
+        C2C_REQUESTS_DEFAULT_TIMEOUT:
+          value: '30'
+        C2CWSGIUTILS_STATS_DB_TRYNUMBER:
+          value: '10'
+        C2CWSGIUTILS_STATS_DB_SLEEP:
+          value: '30'
+        C2C_PROMETHEUS_PORT:
+          value: '9090'
+        POSTGRESQL_STATEMENT_TIMEOUT:
+          value: '30000' # milliseconds
+        PGOPTIONS:
+          value: -c statement_timeout=$(POSTGRESQL_STATEMENT_TIMEOUT)
+          order: 1
+        PGSSLMODE:
+          value: require
+        PGHOST:
+          type: secret
+          name: database
+          key: hostname
+        PGHOST_SLAVE:
+          type: secret
+          name: database
+          key: hostname
+        PGPORT:
+          type: secret
+          name: database
+          key: port
+        PGPORT_SLAVE:
+          type: secret
+          name: database
+          key: port
+        PGDATABASE:
+          type: secret
+          name: database
+          key: database
+        PGUSER:
+          type: secret
+          name: database
+          key: username
+        PGPASSWORD:
+          type: secret
+          name: database
+          key: password
+        GUNICORN_PARAMS:
+          value: --worker-tmp-dir=/dev/shm
+        C2C_LOG_VIEW_ENABLED:
+          value: '1'
+        C2C_DEBUG_VIEW_ENABLED:
+          value: '1'
+        C2C_SQL_PROFILER_ENABLED:
+          value: '1'
+        SENTRY_HOSTNAME:
+          value: o330647.ingest.sentry.io
+        SENTRY_URL:
+          value: https://$(SENTRY_KEY)@$(SENTRY_HOSTNAME)/$(SENTRY_PROJECT)
+          order: 1
+        SENTRY_KEY:
+          type: secret
+          name: secrets
+          key: SENTRY_KEY
+        SENTRY_PROJECT:
+          type: secret
+          name: secrets
+          key: SENTRY_PROJECT
+        SENTRY_CLIENT_RELEASE:
+          type: configMap
+          name: dbstats
+          key: SERVICE_CONTAINER_DBSTATS_IMAGE_TAG
+        SENTRY_TAG_SERVICE:
+          value: dbstats
+        DBSTATS_DEFAULT_EXTRA_ARGUMENTS:
+          value: --schema=main_2_7 --schema=static_2_7 --schema=main_2_8 --schema=static_2_8
+        DBSTATS_EXTRA_ARGUMENTS:
+          value: $(DBSTATS_DEFAULT_EXTRA_ARGUMENTS)
+          order: 1
+        DBSTATS_DB_ARGUMENT:
+          value: --db=postgresql+psycopg2://$(PGUSER):$(PGPASSWORD)@$(PGHOST):$(PGPORT)/$(PGDATABASE)
+          order: 1
+
+      ports:
+        prometheus:
+          containerPort: 9090
+          protocol: TCP
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 33 # www-data
+    allowPrivilegeEscalation: false

@@ -1,0 +1,30 @@
+app:
+  externalSecrets:
+    app:
+      enabled: true
+      refreshInterval: 1h
+      secretStoreRef:
+        kind: SecretStore
+        name: keyvault
+      data:
+        PGHOST:
+          remoteRef:
+            key: pg-host
+        PGHOST_SLAVE:
+          remoteRef:
+            key: pg-host
+        PGPORT:
+          remoteRef:
+            key: pg-main-port
+        PGPORT_SLAVE:
+          remoteRef:
+            key: pg-main-port
+        PGDATABASE:
+          remoteRef:
+            key: pg-main-database
+        PGPASSWORD:
+          remoteRef:
+            key: pg-main-password
+        PGUSER:
+          remoteRef:
+            key: pg-main-username

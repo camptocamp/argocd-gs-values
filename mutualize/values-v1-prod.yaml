@@ -1,0 +1,7 @@
+# Values to be used with helm-mutualize v2 HELM chart to use the mutualize instance version 1
+
+mutualize:
+  environment: ''
+  config:
+    webhooks:
+      base_url: https://geoservices.camptocamp.com/config/1/refresh/

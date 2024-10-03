@@ -1,0 +1,30 @@
+secrets:
+  externalSecrets:
+    app:
+      enabled: true
+      refreshInterval: 1h
+      secretStoreRef:
+        kind: SecretStore
+        name: keyvault
+      data:
+        PGHOST:
+          remoteRef:
+            key: pg-host
+        PGHOST_SLAVE:
+          remoteRef:
+            key: pg-host
+        PGPORT:
+          remoteRef:
+            key: pg-merginmaps-port
+        PGPORT_SLAVE:
+          remoteRef:
+            key: pg-merginmaps-port
+        PGDATABASE:
+          remoteRef:
+            key: pg-merginmaps-database
+        PGPASSWORD:
+          remoteRef:
+            key: pg-merginmaps-password
+        PGUSER:
+          remoteRef:
+            key: pg-merginmaps-username

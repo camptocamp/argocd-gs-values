@@ -1,0 +1,11 @@
+# Values to use the mutualize prod
+
+gmf:
+  mutualize:
+    #tccService: mutualize-tcc.gmf-mutualize-prod.svc.cluster.local
+    configUrl: https://geoservices.camptocamp.com/config
+
+mutualize:
+  config:
+    webhooks:
+      base_url: https://geoservices.camptocamp.com/config

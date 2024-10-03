@@ -1,0 +1,73 @@
+# File contains the image name tag and sha
+
+app:
+  services:
+    geoportal:
+      containers:
+        geoportal:
+          image: &geoportal-image
+            repository: camptocamp/geomapfishapp-geoportal
+            tag: 2.9.0
+            atleastOldDays: 20
+            sha: c2e4fab88aa725d03e126825730dea8ac6136dd01d57215c3e600d54daf95ff2 # Managed by update-image-hash script
+
+          env:
+            C2C_AUTH_GITHUB_PROXY_URL:
+              value: https://geoservices.camptocamp.com/redirect
+
+    alembic:
+      containers:
+        alembic:
+          image: *geoportal-image
+
+    tools:
+      containers:
+        tools:
+          image:
+            repository: camptocamp/geomapfish-tools
+            tag: '2.9'
+            atleastOldDays: 20
+            sha: 0657a156c8dedaa0c9f03ea9c37cb021f90b9b509b05eb06639ad715d97e6420 # Managed by update-image-hash script
+
+    fts-cron:
+      containers:
+        fts-cron:
+          image: *geoportal-image
+
+    mapserver:
+      containers:
+        mapserver:
+          image:
+            repository: camptocamp/mapserver
+            tag: 8.0-gdal3.7
+            atleastOldDays: 20
+            sha: c3aafc84195997279ac94aa31a26e51945c8131302748a4c1cbb390538cb76ff # Managed by update-image-hash script
+
+        apache-exporter: &apacheExporter
+          image:
+            # repository: quay.io/lusitaniae/apache-exporter
+            repository: bitnami/apache-exporter
+            tag: 0.11.0
+            atleastOldDays: 20
+            sha: 843c0f14f8ae9b57247afb336ce84eedfd378f4bf7a0b96891c7e98110a832f3 # Managed by update-image-hash script
+
+    qgisserver:
+      containers:
+        qgisserver:
+          image:
+            repository: camptocamp/geomapfish-qgisserver
+            tag: gmf2.9-qgis3.28-gdal3.7
+            atleastOldDays: 20
+
+        apache-exporter: *apacheExporter
+
+    tinyows:
+      containers:
+        tinyows:
+          image:
+            repository: camptocamp/tinyows
+            tag: latest
+            atleastOldDays: 20
+            sha: dcfca35e49551dfd3c0955c12dfc37dfded406c5e5ba65a7ac3c57e767b29220 # Managed by update-image-hash script
+
+        apache-exporter: *apacheExporter

@@ -1,0 +1,13 @@
+# Values to use the mutualize int
+
+gmf:
+  mutualize:
+    environment: int
+    #tccService: mutualize-tcc.gmf-mutualize-int.svc.cluster.local
+    configUrl: https://geoservices-int.camptocamp.com/config
+
+mutualize:
+  environment: int
+  config:
+    webhooks:
+      base_url: https://geoservices-int.camptocamp.com/config

@@ -1,0 +1,5 @@
+app:
+  externalSecrets:
+    shared:
+      secretStoreRef:
+        name: gmf-shared-int

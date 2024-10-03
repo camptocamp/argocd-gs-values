@@ -1,0 +1,72 @@
+# File contains the image name tag and sha
+
+gmf:
+  # Should be moved in 2-7.yaml
+  securityContext:
+    allowPrivilegeEscalation: false
+
+  image: &geoportal-image
+    repository: camptocamp/geomapfishapp-geoportal
+    tag: 2.7.1
+    sha: 4e27701ccb0da36c426eace0d5bf099ddd6f5f1c3394280752fc6b6d6b5e8dac # Managed by update-image-hash script
+
+  alembic:
+    image: *geoportal-image
+
+  tools:
+    image:
+      repository: camptocamp/geomapfish-tools
+      tag: '2.8'
+      sha: 0427cd54f72b6e301325871c0fe35cfbd101781ee4bb41f2130cfed31ce99889 # Managed by update-image-hash script
+
+mapserver:
+  # Should be moved in 2-7.yaml
+  securityContext:
+    allowPrivilegeEscalation: false
+
+  image:
+    repository: camptocamp/mapserver
+    tag: 7.6-gdal3.7
+    sha: c18884e1e77cef19114f562de2b3caa63eaf6bb04910eab520621bfcb82c7005 # Managed by update-image-hash script
+
+  apacheExporter: &apacheExporter
+    image:
+      # repository: quay.io/lusitaniae/apache-exporter
+      repository: bitnami/apache-exporter
+      tag: 0.11.0
+      sha: 843c0f14f8ae9b57247afb336ce84eedfd378f4bf7a0b96891c7e98110a832f3 # Managed by update-image-hash script
+
+qgisserver:
+  # Should be moved in 2-7.yaml
+  securityContext:
+    allowPrivilegeEscalation: false
+
+  image:
+    repository: camptocamp/geomapfish-qgisserver
+    tag: gmf2.7-qgis3.28-gdal3.7
+    sha: cfa52af435e713aa3e1c3c9b2475269748ac2f2dafc05809b150bf486b65845c # Managed by update-image-hash script
+
+  apacheExporter: *apacheExporter
+
+tinyows:
+  # Should be moved in 2-7.yaml
+  securityContext:
+    allowPrivilegeEscalation: false
+
+  image:
+    repository: camptocamp/tinyows
+    tag: latest
+    sha: a92b5ed6c135e51b103a42f3fa0c051e052593241eb8b400fabf4cd09df994ef # Managed by update-image-hash script
+
+  apacheExporter: *apacheExporter
+
+fts-cron:
+  # Should be moved in 2-7.yaml
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 33 # www-data
+    allowPrivilegeEscalation: false
+
+  containers:
+    fts-cron:
+      image: *geoportal-image

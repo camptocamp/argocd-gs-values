@@ -1,0 +1,6 @@
+dbstats:
+  containers:
+    dbstats:
+      env:
+        SENTRY_CLIENT_ENVIRONMENT:
+          value: int

@@ -1,0 +1,51 @@
+global:
+  configMapNameOverride:
+    database: database-gmf-mutualize
+
+psql-console:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 33 # www-data
+    allowPrivilegeEscalation: false
+
+  services:
+    psql-console:
+      podLabels:
+        team: gmf
+      containers:
+        psql-console:
+          image:
+            repository: camptocamp/geomapfish-tools
+            tag: '2.9'
+            sha: 51694be9c16a3e3f99124658ba741396cc5c2a7e598e98c465139499b35cb23c # Managed by update-image-hash script
+
+          command:
+            - tail
+            - -f
+            - /dev/null
+          env:
+            PGHOST:
+              type: secret
+              name: database
+              key: hostname
+            PGDATABASE:
+              type: secret
+              name: database
+              key: database
+            PGUSER:
+              type: secret
+              name: database
+              key: username
+            PGPASSWORD:
+              type: secret
+              name: database
+              key: password
+
+          resources:
+            limits:
+              memory: 200Mi
+              cpu: '2'
+              ephemeral-storage: 16Mi
+            requests:
+              memory: 100Mi
+              cpu: 1m

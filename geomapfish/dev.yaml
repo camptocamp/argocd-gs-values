@@ -1,0 +1,58 @@
+# Values that can be used in integration environment to debug
+# Comment because it shouldn't be directly included
+
+gmf:
+  env:
+    {}
+    # Cache logs
+    # DOGPILECACHE_LOG_LEVEL:
+    #  value: DEBUG
+    # "level = INFO" logs SQL queries.
+    # "level = DEBUG" logs SQL queries and results.
+    # "level = WARN" logs neither.  (Recommended for production systems.)
+    # SQL_LOG_LEVEL:
+    #  value: INFO
+    # With c2c interface set the logging <name>=<level>
+    # c2cwsgiutils.stats_pyramid._db_spy=DEBUG To get the simplified SQL statements with duration
+    # GUNICORN_LOG_LEVEL:
+    #  value: DEBUG
+    # GUNICORN_ACCESS_LOG_LEVEL:
+    #  value: DEBUG
+    # C2CWSGIUTILS_LOG_LEVEL:
+    #  value: DEBUG
+    # C2CGEOPORTAL_LOG_LEVEL:
+    #  value: DEBUG
+    # LOG_LEVEL:
+    #  value: DEBUG
+    # OTHER_LOG_LEVEL:
+    #  value: DEBUG
+
+  # tools:
+  #   enabled: true
+
+qgisserver:
+  env:
+    {}
+    # Should be used sparingly
+    # QGIS_SERVER_LOG_LEVEL:
+    #   value: '0'
+    # The result stack traces will be available in /var/log/qgis.log
+    # QGIS_CATCH_SEGV
+    #   value: '1'
+
+pods:
+  services:
+    mapserver:
+      containers:
+        mapserver:
+          env:
+            {}
+            # MAPSERVER_CATCH_SEGV
+            #   value: '1'
+    qgisserver:
+      containers:
+        qgisserver:
+          env:
+            {}
+            # QGIS_SERVER_CATCH_SEGV
+            #   value: '1'

@@ -1,0 +1,21 @@
+app:
+  dockerregistry:
+    enabled: true
+    external: true
+    refreshInterval: 1h
+    secretStoreRef:
+      kind: ClusterSecretStore
+    content:
+      docker_hub: &docker-hub
+        externalEmail: docker-io-email
+        externalUsername: docker-io-username
+        externalPassword: docker-io-password
+        url: https://index.docker.io/v1/
+      docker_io:
+        <<: *docker-hub
+        url: docker.io
+      ghcr_io:
+        externalEmail: ghcr-io-email
+        externalUsername: ghcr-io-username
+        externalPassword: ghcr-io-password
+        url: ghcr.io

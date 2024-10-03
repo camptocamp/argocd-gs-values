@@ -1,0 +1,855 @@
+# File contains base configuration
+
+global:
+  image:
+    pullPolicy: IfNotPresent
+    pullSecrets:
+      - name: secrets-secrets-dockerregistry
+  configMapNameOverride:
+    env: gmf-2-8-gmf-env
+    fts-cron: gmf-2-8-fts-cron
+    secrets: secrets-secrets
+  revisionHistoryLimit: 0
+
+shared:
+  redisEnv: &redisEnv
+    REDIS_HOST:
+      type: secret
+      name: redis
+      key: hostname
+    REDIS_PORT:
+      type: secret
+      name: redis
+      key: ssl_port
+    REDIS_PASSWORD:
+      type: secret
+      name: redis
+      key: primary_access_key
+    REDIS_SSL:
+      value: 'true'
+    C2C_REDIS_URL:
+      value: rediss://:$(REDIS_PASSWORD)@$(REDIS_HOST):$(REDIS_PORT)/$(REDIS_DB)
+      order: 1
+    C2C_BROADCAST_PREFIX:
+      value: broadcast_geoportal_$(REDIS_DB)_
+      order: 1
+    C2C_REDIS_TIMEOUT:
+      value: '30'
+    REDIS_TIMEOUT:
+      value: '30'
+
+  c2cwsgiutilsEnv: &c2cwsgiutilsEnv
+    C2C_LOG_VIEW_ENABLED:
+      value: '1'
+    C2C_DEBUG_VIEW_ENABLED:
+      value: '1'
+    C2C_SQL_PROFILER_ENABLED:
+      value: '1'
+    LOG_TYPE:
+      value: json
+    C2C_REQUESTS_DEFAULT_TIMEOUT:
+      value: '180'
+    GUNICORN_CMD_ARGS:
+      value: --worker-tmp-dir=/dev/shm
+    GUNICORN_WORKERS:
+      value: '2'
+    GUNICORN_THREADS:
+      value: '10'
+    GUNICORN_TIMEOUT:
+      value: '30'
+    GUNICORN_MAX_REQUESTS:
+      value: '2000'
+    GUNICORN_MAX_REQUESTS_JITTER:
+      value: '200'
+    GUNICORN_LIMIT_REQUEST_LINE:
+      value: '8190'
+    GUNICORN_ACCESS_LOG_FORMAT:
+      value: '%(H)s %({Host}i)s %(m)s %(U)s?%(q)s "%(f)s" "%(a)s" %(s)s %(B)s %(D)s
+        %(p)s'
+
+  pgOptionsEnv: &pgOptionsEnv
+    POSTGRESQL_STATEMENT_TIMEOUT:
+      value: '30000' # milliseconds
+    PGOPTIONS:
+      value: -c statement_timeout=$(POSTGRESQL_STATEMENT_TIMEOUT)
+      order: 1
+
+  dbEnv: &dbEnv
+    <<: *pgOptionsEnv
+    PGSSLMODE:
+      value: require
+    PGHOST:
+      type: secret
+      name: database
+      key: hostname
+    PGHOST_SLAVE:
+      type: secret
+      name: database
+      key: hostname
+    PGPORT:
+      type: secret
+      name: database
+      key: port
+    PGPORT_SLAVE:
+      type: secret
+      name: database
+      key: port
+    PGDATABASE:
+      type: secret
+      name: database
+      key: database
+    PGUSER:
+      type: secret
+      name: database
+      key: username
+    PGPASSWORD:
+      type: secret
+      name: database
+      key: password
+
+  # Temporarily disabled
+  azureBlobEnv: &azureBlobEnv {}
+
+  sentryEnv: &sentryEnv
+    SENTRY_HOSTNAME:
+      value: o330647.ingest.sentry.io
+    SENTRY_URL:
+      value: https://$(SENTRY_KEY)@$(SENTRY_HOSTNAME)/$(SENTRY_PROJECT)
+      order: 1
+    SENTRY_KEY:
+      type: secret
+      name: secrets
+      key: SENTRY_KEY
+    SENTRY_PROJECT:
+      type: secret
+      name: secrets
+      key: SENTRY_PROJECT
+    SENTRY_TRACES_SAMPLE_RATE:
+      value: '0.1'
+
+  internalUrlEnv: &internalUrlEnv
+    RELEASE_NAME: &RELEASE_NAME
+      type: configMap
+      name: env
+      key: RELEASE_NAME
+    TILECLOUDCHAIN_INTERNAL_URL:
+      value: http://$(RELEASE_NAME)-tilecloudchain/
+      order: 1
+    GEOPORTAL_INTERNAL_URL:
+      value: http://$(RELEASE_NAME)-geoportal/
+      order: 1
+    MAPSERVER_URL:
+      value: http://$(RELEASE_NAME)-pods-mapserver/
+      order: 1
+    QGISSERVER_URL:
+      value: http://$(RELEASE_NAME)-pods-qgisserver/
+      order: 1
+    TINYOWS_URL:
+      value: http://$(RELEASE_NAME)-pods-tinyows/
+      order: 1
+
+  sqlalchemyEnv: &sqlalchemyEnv
+    SQLALCHEMY_POOL_RECYCLE:
+      value: '30'
+    SQLALCHEMY_POOL_SIZE:
+      value: '1'
+    SQLALCHEMY_MAX_OVERFLOW:
+      value: '10'
+    SQLALCHEMY_SLAVE_POOL_RECYCLE:
+      value: '30'
+    SQLALCHEMY_SLAVE_POOL_SIZE:
+      value: '5'
+    SQLALCHEMY_SLAVE_MAX_OVERFLOW:
+      value: '10'
+
+  configEnv: &configEnv
+    <<: [*dbEnv, *azureBlobEnv, *internalUrlEnv, *sentryEnv, *sqlalchemyEnv]
+    VISIBLE_WEB_PROTOCOL:
+      value: https
+    VISIBLE_ENTRY_POINT:
+      value: /
+    MAPSERVER_DATA_SUBSELECT:
+      value: >
+        SELECT ST_Collect(ra.area)
+        FROM $(PGSCHEMA).restrictionarea AS ra,
+        $(PGSCHEMA).role_restrictionarea AS rra,
+        $(PGSCHEMA).layer_restrictionarea AS lra,
+        $(PGSCHEMA).treeitem AS la
+        WHERE rra.role_id in (%role_ids%) AND rra.restrictionarea_id = ra.id
+        AND lra.restrictionarea_id = ra.id AND lra.layer_id = la.id AND la.name =
+      order: 1
+    MAPSERVER_DATA_NOAREA_SUBSELECT:
+      value: >
+        SELECT rra.role_id
+        FROM $(PGSCHEMA).restrictionarea AS ra,
+        $(PGSCHEMA).role_restrictionarea AS rra,
+        $(PGSCHEMA).layer_restrictionarea AS lra,
+        $(PGSCHEMA).treeitem AS la
+        WHERE rra.restrictionarea_id = ra.id AND lra.restrictionarea_id = ra.id
+        AND lra.layer_id = la.id AND la.name =
+      order: 1
+    MAPSERVER_JOIN_TABLES:
+      value: >
+        $(PGSCHEMA).restrictionarea AS ra,
+        $(PGSCHEMA).role_restrictionarea AS rra,
+        $(PGSCHEMA).layer_restrictionarea AS lra,
+        $(PGSCHEMA).treeitem AS la
+      order: 1
+    MAPSERVER_JOIN_WHERE:
+      value: >
+        rra.role_id in (%role_ids%) AND rra.restrictionarea_id = ra.id AND
+        lra.restrictionarea_id = ra.id AND lra.layer_id = la.id AND la.name =
+      order: 1
+    BASICAUTH:
+      value: 'false'
+    SRID:
+      value: '2056'
+
+  gdalEnv: &gdalEnv
+    CPL_VSIL_CURL_USE_CACHE:
+      value: 'TRUE'
+    CPL_VSIL_CURL_CACHE_SIZE:
+      value: '64000000' # 64 MB
+    CPL_VSIL_CURL_USE_HEAD:
+      value: 'FALSE'
+    GDAL_DISABLE_READDIR_ON_OPEN:
+      value: 'TRUE'
+    # By default it's 5% of the node memory
+    GDAL_CACHEMAX:
+      value: '64' # MB
+    VSI_CACHE_SIZE:
+      value: '64000000' # 64 MB
+
+gmf:
+  annotations:
+    reloader.stakater.com/auto: 'true'
+  podLabels:
+    redis-client: 'true'
+    team: gmf
+
+  probe:
+    liveness:
+      initialDelaySeconds: 9999
+      periodSeconds: 60
+    readiness:
+      timeoutSeconds: 120
+      initialDelaySeconds: 10
+      periodSeconds: 180
+
+  ingress:
+    enabled: false
+
+  resources:
+    limits:
+      # It can be 450Mi if we remove the phantomjs checks
+      memory: 800Mi
+      cpu: '2'
+      ephemeral-storage: 128Mi
+    requests:
+      memory: 271Mi
+      cpu: 88m
+      ephemeral-storage: 64Mi
+
+  config: &config
+    env: *configEnv
+    resources:
+      requests:
+        memory: 16Mi
+        cpu: 1m
+      limits:
+        memory: 64Mi
+        cpu: '2'
+        ephemeral-storage: 16Mi
+
+  env:
+    <<: [*configEnv, *c2cwsgiutilsEnv, *redisEnv, *internalUrlEnv, *sqlalchemyEnv]
+    RASTER_BASE_PATH:
+      value: /vsiaz/$(AZURE_STORAGE_DATA_CONTAINER_NAME)/
+      order: 1
+    SENTRY_CLIENT_RELEASE:
+      type: configMap
+      name: env
+      key: GEOPORTAL_IMAGE_TAG
+    SENTRY_TAG_SERVICE:
+      value: geoportal
+    REDIS_LOCK_TIMEOUT:
+      value: '180' # 3 minutes
+    SENTRY_TRACES_SAMPLE_RATE:
+      value: '0.1'
+    C2C_DB_MAINTENANCE_VIEW_ENABLED:
+      value: '1'
+    AUTHTKT_SECRET:
+      type: secret
+      name: secrets
+      key: AUTHTKT_SECRET
+    C2C_SECRET:
+      type: secret
+      name: secrets
+      key: C2C_SECRET
+    C2C_AUTH_GITHUB_CLIENT_ID:
+      type: secret
+      name: secrets
+      key: C2C_AUTH_GITHUB_CLIENT_ID
+    C2C_AUTH_GITHUB_CLIENT_SECRET:
+      type: secret
+      name: secrets
+      key: C2C_AUTH_GITHUB_CLIENT_SECRET
+    C2C_AUTH_GITHUB_SECRET:
+      type: secret
+      name: secrets
+      key: C2C_AUTH_GITHUB_SECRET
+
+  alembic:
+    annotations:
+      argocd.argoproj.io/hook: PostSync
+      argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    podLabels:
+      team: gmf
+
+    mainStatic: false
+    env:
+      <<: [*configEnv, *c2cwsgiutilsEnv]
+      SENTRY_CLIENT_RELEASE:
+        type: configMap
+        name: env
+        key: ALEMBIC_IMAGE_TAG
+      SENTRY_TAG_SERVICE:
+        value: alembic
+
+    resources:
+      requests:
+        cpu: 100m
+        memory: 40Mi
+      limits:
+        memory: 128Mi
+        cpu: '2'
+        ephemeral-storage: 30Mi
+
+  tools:
+    enabled: true
+    env: *configEnv
+
+    annotations:
+      reloader.stakater.com/auto: 'true'
+    podLabels:
+      redis-client: 'true'
+      team: gmf
+
+    resources:
+      limits:
+        memory: 200Mi
+        cpu: '2'
+        ephemeral-storage: 16Mi
+      requests:
+        memory: 100Mi
+        cpu: 1m
+
+  mutualize:
+    enabled: true
+    rbac: true
+    rbacGroups:
+      - d4d4859b-b839-4e80-922e-29090cb24ef1 # AD Group: [Geospatial Solutions] GMF developers
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 33 # www-data
+    allowPrivilegeEscalation: false
+
+pods:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 33 # www-data
+    allowPrivilegeEscalation: false
+  affinity: {}
+
+  services:
+    mapserver:
+      enabled: false
+
+      annotations:
+        reloader.stakater.com/auto: 'true'
+      podLabels:
+        team: gmf
+
+      podMonitor:
+        enabled: true
+        endpoint:
+          honorLabels: true
+          interval: 10s
+          port: prometheus
+
+      service:
+        ports:
+          - port: 80
+            targetPort: http
+            protocol: TCP
+            name: http
+
+      volumes:
+        configs:
+          emptyDir: {}
+        tmp:
+          emptyDir: {}
+        mpm-event-conf:
+          secret:
+            secretName: secrets-secrets
+            items:
+              - key: mpm_event.conf
+                path: mpm_event.conf
+        mapserver-conf:
+          secret:
+            secretName: secrets-secrets
+            items:
+              - key: mapserver.conf
+                path: mapserver.conf
+
+      initContainers:
+        config:
+          <<: *config
+          args:
+            - bash
+            - -c
+            - cp -a /etc/mapserver/* /etc/configs/
+          volumeMounts:
+            /etc/configs:
+              name: configs
+          env:
+            <<: *configEnv
+            RASTER_BASE_PATH:
+              value: /vsiaz/$(AZURE_STORAGE_DATA_CONTAINER_NAME)/
+              order: 1
+
+      containers:
+        mapserver:
+          command: [/bin/bash]
+          args: [/usr/local/bin/start-server]
+
+          volumeMounts:
+            /etc/mapserver:
+              name: configs
+              readOnly: true
+            /tmp:
+              name: tmp
+            /etc/apache2/mods-enabled/mpm_event.conf:
+              name: mpm-event-conf
+              subPath: mpm_event.conf
+            /etc/apache2/conf-enabled/mapserver.conf:
+              name: mapserver-conf
+              subPath: mapserver.conf
+          ports:
+            http:
+              containerPort: 8080
+              protocol: TCP
+
+          env:
+            <<: [*pgOptionsEnv, *gdalEnv]
+            MIN_PROCESSES:
+              value: '1'
+            MAX_PROCESSES:
+              value: '5'
+            IO_TIMEOUT:
+              value: '180' # 3 minutes
+            APACHE_LIMIT_REQUEST_LINE:
+              value: '8190'
+            MAPSERVER_CONFIG_FILE:
+              value: /etc/mapserver/mapserver.conf
+            PROJ_LIB:
+              value: /usr/local/share/proj
+
+          resources:
+            requests:
+              memory: 40Mi
+              cpu: 4m
+              ephemeral-storage: 32Mi
+            limits:
+              memory: 600Mi
+              cpu: '2'
+              ephemeral-storage: 256Mi
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 2
+            timeoutSeconds: 10
+            periodSeconds: 20
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 2
+            timeoutSeconds: 60
+            periodSeconds: 30
+            failureThreshold: 5
+          startupProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 20
+            timeoutSeconds: 10
+
+        apache-exporter: &apacheExporter
+          args:
+            - --scrape_uri=http://localhost:8080/server-status-remote?auto
+
+          ports:
+            prometheus:
+              containerPort: 9117
+              protocol: TCP
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: prometheus
+            initialDelaySeconds: 5
+            timeoutSeconds: 10
+            periodSeconds: 20
+
+          resources:
+            limits:
+              memory: 30Mi
+              cpu: '2'
+              ephemeral-storage: 32Mi
+            requests:
+              memory: 10Mi
+              cpu: 1m
+
+    qgisserver:
+      enabled: false
+
+      annotations:
+        reloader.stakater.com/auto: 'true'
+      podLabels:
+        team: gmf
+
+      podMonitor:
+        enabled: true
+        endpoint:
+          honorLabels: true
+          interval: 10s
+          port: prometheus
+
+      service:
+        ports:
+          - port: 80
+            targetPort: http
+            protocol: TCP
+            name: http
+
+      volumes:
+        configs:
+          emptyDir: {}
+        tmp:
+          emptyDir: {}
+        mpm-event-conf:
+          secret:
+            secretName: secrets-secrets
+            items:
+              - key: mpm_event.conf
+                path: mpm_event.conf
+        qgis-conf:
+          secret:
+            secretName: secrets-secrets
+            items:
+              - key: qgis.conf
+                path: qgis.conf
+
+      initContainers:
+        config:
+          <<: *config
+          args:
+            - bash
+            - -c
+            - cp -a /etc/qgisserver/* /etc/configs/
+          volumeMounts:
+            /etc/configs:
+              name: configs
+
+          env:
+            <<: *configEnv
+            RASTER_BASE_PATH:
+              value: /vsiaz/$(AZURE_STORAGE_DATA_CONTAINER_NAME)/
+              order: 1
+
+      containers:
+        qgisserver:
+          volumeMounts:
+            /etc/qgisserver:
+              name: configs
+              readOnly: true
+            /tmp:
+              name: tmp
+            /etc/apache2/mods-enabled/mpm_event.conf:
+              name: mpm-event-conf
+              subPath: mpm_event.conf
+            /etc/apache2/conf-enabled/qgis.conf:
+              name: qgis-conf
+              subPath: qgis.conf
+
+          ports:
+            http:
+              containerPort: 8080
+              protocol: TCP
+
+          env:
+            <<: [*redisEnv, *azureBlobEnv, *gdalEnv]
+            RELEASE_NAME: *RELEASE_NAME
+            MIN_PROCESSES:
+              value: '1'
+            MAX_PROCESSES:
+              value: '5'
+            MAX_REQUESTS_PER_PROCESS:
+              value: '500'
+            GEOMAPFISH_ACCESSCONTROL_BASE_URL:
+              value: http://$(RELEASE_NAME)-pods-qgisserver/
+              order: 1
+            FCGID_IO_TIMEOUT:
+              value: '120'
+            QGIS_SERVER_LOG_LEVEL:
+              value: '2' # 0 for verbose
+            QGIS_CUSTOM_CONFIG_PATH:
+              value: /tmp
+            QGIS_SERVER_TRUST_LAYER_METADATA:
+              value: 'TRUE'
+            QGIS_SERVER_PARALLEL_RENDERING:
+              value: 'FALSE'
+            MAX_CACHE_LAYERS:
+              value: '100'
+            QGIS_SERVER_IGNORE_BAD_LAYERS:
+              value: 'TRUE'
+            QGIS_SERVER_CACHE_SIZE:
+              value: '60' # MB
+            QGIS_SERVER_WMS_MAX_HEIGHT:
+              value: '5000'
+            QGIS_SERVER_WMS_MAX_WIDTH:
+              value: '5000'
+            QGIS_SERVER_API_WFS3_MAX_LIMIT:
+              value: '10000'
+            QGIS_SERVER_DISABLE_GETPRINT:
+              value: 'TRUE'
+            QGIS_SERVER_LANDING_PAGE_PROJECTS_DIRECTORIES:
+              value: /etc/qgisserver/
+            QGIS_SERVER_OVERRIDE_SYSTEM_LOCALE:
+              value: fr
+            QGIS_AUTH_DB_DIR_PATH:
+              value: /etc/qgisserver/
+            QGIS_SERVER_PROJECT_CACHE_STRATEGY:
+              value: periodic
+            QGIS_SERVER_PROJECT_CACHE_CHECK_INTERVAL:
+              value: '3600000' # one hour, in milli seconds
+            PGSERVICEFILE:
+              value: /etc/qgisserver/pg_service.conf
+
+          resources:
+            requests:
+              memory: 113Mi
+              cpu: 12.5m
+            limits:
+              memory: 1Gi
+              cpu: '2'
+              ephemeral-storage: 2Gi
+
+          readinessProbe:
+            httpGet:
+              path: /?SERVICE=WMS&REQUEST=GetCapabilities&MAP=/etc/qgisserver/project.qgz
+              port: http
+            initialDelaySeconds: 20
+            timeoutSeconds: 300
+            periodSeconds: 20
+          livenessProbe:
+            httpGet:
+              path: /?SERVICE=WMS&REQUEST=GetCapabilities&MAP=/etc/qgisserver/project.qgz
+              port: http
+            initialDelaySeconds: 20
+            timeoutSeconds: 300
+            periodSeconds: 60
+          startupProbe:
+            httpGet:
+              path: /?SERVICE=WMS&REQUEST=GetCapabilities&MAP=/etc/qgisserver/project.qgz
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            timeoutSeconds: 300
+            failureThreshold: 50
+
+        apache-exporter: *apacheExporter
+
+    tinyows:
+      enabled: false
+
+      annotations:
+        reloader.stakater.com/auto: 'true'
+      podLabels:
+        team: gmf
+
+      podMonitor:
+        enabled: true
+        endpoint:
+          honorLabels: true
+          interval: 10s
+          port: prometheus
+
+      service:
+        ports:
+          - port: 80
+            targetPort: http
+            protocol: TCP
+            name: http
+
+      volumes:
+        configs:
+          emptyDir: {}
+        tmp:
+          emptyDir: {}
+
+      initContainers:
+        config:
+          <<: *config
+          args:
+            - bash
+            - -c
+            - cp -a /etc/mapserver/* /etc/configs/
+          volumeMounts:
+            /etc/configs:
+              name: configs
+          env:
+            <<: *configEnv
+
+      containers:
+        tinyows:
+          volumeMounts:
+            /etc/mapserver:
+              name: configs
+              readOnly: true
+            /tmp:
+              name: tmp
+
+          ports:
+            http:
+              containerPort: 8080
+              protocol: TCP
+
+          readinessProbe:
+            httpGet:
+              path: /?SERVICE=WFS&REQUEST=GetCapabilities&VERSION=1.1.0
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 20
+            timeoutSeconds: 10
+          startupProbe:
+            httpGet:
+              path: /?SERVICE=WFS&REQUEST=GetCapabilities&VERSION=1.1.0
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 20
+            timeoutSeconds: 10
+
+          resources:
+            requests:
+              memory: 24Mi
+              cpu: 5m
+            limits:
+              memory: 64Mi
+              cpu: '2'
+              ephemeral-storage: 32Mi
+
+        apache-exporter: *apacheExporter
+
+ingress:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    ingress.kubernetes.io/ssl-redirect: 'true'
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: 'true'
+  paths:
+    geoportal:
+      path: /
+      serviceName: gmf-geoportal
+
+fts-cron:
+  schedule: 35 * * * *
+
+  podLabels:
+    team: gmf
+
+  volumes:
+    configs:
+      emptyDir: {}
+
+  initContainers:
+    config:
+      <<: *config
+      args: [bash, -c, cp -a /etc/geomapfish/* /etc/geomapfish-volume/]
+      volumeMounts:
+        /etc/geomapfish-volume:
+          name: configs
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 33 # www-data
+    allowPrivilegeEscalation: false
+
+  containers:
+    fts-cron:
+      args:
+        - theme2fts
+
+      volumeMounts:
+        /etc/geomapfish:
+          name: configs
+          readOnly: true
+
+      env:
+        <<: [*configEnv, *c2cwsgiutilsEnv, *internalUrlEnv, *sqlalchemyEnv]
+        SENTRY_CLIENT_RELEASE:
+          type: configMap
+          name: fts-cron
+          key: SERVICE_CONTAINER_FTS-CRON_IMAGE_TAG
+        SENTRY_TAG_SERVICE:
+          value: fts-cron
+        AUTHTKT_SECRET:
+          value: fake_012345678901234567890123456789012345678901234567890123456789
+      resources:
+        requests:
+          cpu: 88m
+          memory: 271Mi
+        limits:
+          memory: 425Mi
+          cpu: '2'
+          ephemeral-storage: 32Mi
+
+geoserver-cloud:
+  geoserver:
+    services:
+      gateway: &geoserver-service
+        annotations:
+          reloader.stakater.com/auto: 'true'
+        podLabels:
+          team: gmf
+
+        volumes:
+          configs:
+            emptyDir: {}
+
+        initContainers:
+          config:
+            <<: *config
+            args: [bash, -c, cp -a /etc/geoserver/* /etc/geoserver-volume/]
+            volumeMounts:
+              /etc/geoserver-volume:
+                name: configs
+
+        containers:
+          spring:
+            volumeMounts:
+              /etc/geoserver:
+                name: configs
+                readOnly: true
+
+      webui: *geoserver-service
+      rest: *geoserver-service
+      wfs: *geoserver-service
+      wms: *geoserver-service
+      wcs: *geoserver-service
+      gwc: *geoserver-service

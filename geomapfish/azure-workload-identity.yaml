@@ -1,0 +1,54 @@
+# Values for the Azure access
+
+gmf:
+  serviceAccount:
+    name: azure
+  podLabels:
+    azure.workload.identity/use: 'true'
+
+  tools:
+    podLabels:
+      azure.workload.identity/use: 'true'
+
+# 2.7
+mapserver:
+  serviceAccount:
+    name: azure
+  podLabels:
+    azure.workload.identity/use: 'true'
+
+qgisserver:
+  serviceAccount:
+    name: azure
+  podLabels:
+    azure.workload.identity/use: 'true'
+
+# 2.8
+pods:
+  serviceAccount:
+    name: azure
+  services:
+    mapserver:
+      podLabels:
+        azure.workload.identity/use: 'true'
+    qgisserver:
+      podLabels:
+        azure.workload.identity/use: 'true'
+
+# 2.9
+app:
+  serviceAccount:
+    name: azure
+  services:
+    geoportal:
+      podLabels:
+        azure.workload.identity/use: 'true'
+    tools:
+      podLabels:
+        azure.workload.identity/use: 'true'
+    mapserver:
+      podLabels:
+        azure.workload.identity/use: 'true'
+    qgisserver:
+      podLabels:
+        azure.workload.identity/use: 'true'

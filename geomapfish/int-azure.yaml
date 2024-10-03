@@ -1,0 +1,26 @@
+# Values for the Azure access in the int namespace
+
+gmf:
+  podLabels:
+    aadpodidbinding: azure-storage-gmfint
+
+  tools:
+    podLabels:
+      aadpodidbinding: azure-storage-gmfint
+
+mapserver:
+  podLabels:
+    aadpodidbinding: azure-storage-gmfint
+
+qgisserver:
+  podLabels:
+    aadpodidbinding: azure-storage-gmfint
+
+pods:
+  services:
+    mapserver:
+      podLabels:
+        aadpodidbinding: azure-storage-gmfint
+    qgisserver:
+      podLabels:
+        aadpodidbinding: azure-storage-gmfint

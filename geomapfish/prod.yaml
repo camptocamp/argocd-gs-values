@@ -1,0 +1,48 @@
+# Other values to be used in prod
+
+gmf:
+  env: &gmf_env
+    PRINT_URL:
+      value: https://geoservices.camptocamp.com/print/print/$(PRINT_APP)
+      order: 1
+    REDIS_DB: &redis_db
+      value: '2'
+
+  alembic:
+    env:
+      REDIS_DB: *redis_db
+
+qgisserver:
+  env:
+    REDIS_DB: *redis_db
+
+fts-cron:
+  containers:
+    fts-cron:
+      env:
+        REDIS_DB: *redis_db
+
+app:
+  services:
+    geoportal:
+      containers:
+        geoportal:
+          env: *gmf_env
+
+    alembic:
+      containers:
+        alembic:
+          env:
+            REDIS_DB: *redis_db
+
+    qgisserver:
+      containers:
+        qgisserver:
+          env:
+            REDIS_DB: *redis_db
+
+    fts-cron:
+      containers:
+        fts-cron:
+          env:
+            REDIS_DB: *redis_db

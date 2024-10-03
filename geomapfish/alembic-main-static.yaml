@@ -1,0 +1,11 @@
+# From 2.9 also update also main static schema (replace mainStatic configuration))
+
+app:
+  services:
+    alembic:
+      containers:
+        alembic:
+          args:
+            - bash
+            - -c
+            - alembic --name=main upgrade head && alembic --name=static upgrade head

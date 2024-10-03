@@ -1,0 +1,49 @@
+shared:
+  azure-account: &azure-account
+    AZURE_STORAGE_ACCOUNT:
+      value: gmfint
+
+gmf:
+  env: *azure-account
+
+  config: &config
+    env: *azure-account
+
+pods:
+  services:
+    mapserver:
+      initContainers:
+        config: *config
+      containers:
+        mapserver:
+          env: *azure-account
+
+    qgisserver:
+      initContainers:
+        config: *config
+      containers:
+        qgisserver:
+          env: *azure-account
+
+app:
+  services:
+    geoportal:
+      initContainers:
+        config: *config
+      containers:
+        geoportal:
+          env: *azure-account
+
+    mapserver:
+      initContainers:
+        config: *config
+      containers:
+        mapserver:
+          env: *azure-account
+
+    qgisserver:
+      initContainers:
+        config: *config
+      containers:
+        qgisserver:
+          env: *azure-account

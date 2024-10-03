@@ -1,0 +1,142 @@
+ingress: &ingress {}
+ingress-test: *ingress
+
+global:
+  image:
+    pullPolicy: Always
+
+frontend:
+  ingress:
+    enabled: false
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      ingress.kubernetes.io/ssl-redirect: 'true'
+      traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      traefik.ingress.kubernetes.io/router.tls: 'true'
+
+  services:
+    frontend:
+      enabled: true
+      replicaCount: 1
+
+      podLabels:
+        team: gmf
+
+      ingress:
+        enabled: false
+        path: /
+
+      service:
+        type: ClusterIP
+        servicePort: 8080
+        ports:
+          - name: http
+            port: 8080
+            protocol: TCP
+            targetPort: 80
+
+      containers:
+        frontend:
+          #image:
+          #  repository: lutraconsulting/merginmaps-frontend
+
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: http
+            initialDelaySeconds: 10
+            timeoutSeconds: 1
+            periodSeconds: 20
+
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+
+          ports:
+            http:
+              containerPort: 80
+              protocol: TCP
+
+server:
+  ingress:
+    enabled: false
+
+  services:
+    server:
+      enabled: true
+      replicaCount: 1
+
+      podLabels:
+        team: gmf
+
+      ingress:
+        enabled: false
+
+      service:
+        type: ClusterIP
+        servicePort: 8080
+        ports:
+          - name: http
+            port: 8080
+            protocol: TCP
+            targetPort: 8080
+
+      containers:
+        server:
+          #image:
+          #  repository: camptocamp/merginmap-backend
+
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: 8080
+            initialDelaySeconds: 10
+            timeoutSeconds: 1
+            periodSeconds: 20
+
+          livenessProbe:
+            exec:
+              command:
+                - curl
+                - -X POST
+                - 0.0.0.0:8080/alive
+            initialDelaySeconds: 10
+            timeoutSeconds: 1
+            periodSeconds: 20
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 1
+              memory: 2Gi
+
+          ports:
+            http:
+              containerPort: 8080
+              protocol: TCP
+
+nginx:
+  replicaCount: 1
+  podLabels:
+    team: gmf
+  ingress:
+    enabled: true
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      ingress.kubernetes.io/ssl-redirect: 'true'
+      traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      traefik.ingress.kubernetes.io/router.tls: 'true'
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi

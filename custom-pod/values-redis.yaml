@@ -1,0 +1,18 @@
+app:
+  externalSecrets:
+    app:
+      enabled: true
+      refreshInterval: 1h
+      secretStoreRef:
+        kind: SecretStore
+        name: keyvault
+      data:
+        REDIS_HOST:
+          remoteRef:
+            key: redis-hostname
+        REDIS_PORT:
+          remoteRef:
+            key: redis-ssl-port
+        REDIS_PASSWORD:
+          remoteRef:
+            key: redis-primary-access-key

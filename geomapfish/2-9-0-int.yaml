@@ -1,0 +1,68 @@
+# File contains the image name tag and sha
+
+app:
+  services:
+    geoportal:
+      containers:
+        geoportal:
+          image: &geoportal-image
+            repository: camptocamp/geomapfishapp-geoportal
+            tag: 2.9.0
+            sha: ce30fb87c4fd9360e58eff41e1a34e9faa318c2e49f28536c1a5fb6f9cb2ac9a # Managed by update-image-hash script
+
+          env:
+            C2C_AUTH_GITHUB_PROXY_URL:
+              value: https://geoservices-int.camptocamp.com/redirect
+
+    alembic:
+      containers:
+        alembic:
+          image: *geoportal-image
+
+    tools:
+      containers:
+        tools:
+          image:
+            repository: camptocamp/geomapfish-tools
+            tag: '2.9'
+            sha: 51694be9c16a3e3f99124658ba741396cc5c2a7e598e98c465139499b35cb23c # Managed by update-image-hash script
+
+    fts-cron:
+      containers:
+        fts-cron:
+          image: *geoportal-image
+
+    mapserver:
+      containers:
+        mapserver:
+          image:
+            repository: camptocamp/mapserver
+            tag: 8.0-gdal3.6
+            sha: da2ae0913c542cc27f3b7412837fe0af5b6b7e177a455f1578da980a6c31e7e3 # Managed by update-image-hash script
+
+        apache-exporter: &apacheExporter
+          image:
+            # repository: quay.io/lusitaniae/apache-exporter
+            repository: bitnami/apache-exporter
+            tag: 0.11.0
+            sha: 843c0f14f8ae9b57247afb336ce84eedfd378f4bf7a0b96891c7e98110a832f3 # Managed by update-image-hash script
+
+    qgisserver:
+      containers:
+        qgisserver:
+          image:
+            repository: camptocamp/geomapfish-qgisserver
+            tag: gmf2.9-qgis3.34-gdal3.8
+            sha: ee5b81934338bb26a06ec2b10269d67966fd3c6d456adc7370af7b35b52a7b7c # Managed by update-image-hash script
+
+        apache-exporter: *apacheExporter
+
+    tinyows:
+      containers:
+        tinyows:
+          image:
+            repository: camptocamp/tinyows
+            tag: latest
+            sha: a92b5ed6c135e51b103a42f3fa0c051e052593241eb8b400fabf4cd09df994ef # Managed by update-image-hash script
+
+        apache-exporter: *apacheExporter

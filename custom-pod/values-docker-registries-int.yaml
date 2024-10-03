@@ -1,0 +1,4 @@
+app:
+  dockerregistry:
+    secretStoreRef:
+      name: gmf-shared-int

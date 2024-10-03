@@ -1,0 +1,4 @@
+secrets:
+  dockerregistrySecretStoreRef:
+    kind: ClusterSecretStore
+    name: gmf-shared-int
